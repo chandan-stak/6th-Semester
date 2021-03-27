@@ -1,0 +1,123 @@
+cqlsh>CREATE KEYSPACE EMPLOYEE with REPLICATION = { 'class': 'SimpleStrategy', 'replication_factor' : 1};
+cqlsh> describe keyspaces;
+
+demo      system       system_distributed  system_traces  system_virtual_schema
+employee  system_auth  system_schema       system_views 
+
+cqlsh> select * from system_schema.keyspaces;
+
+ keyspace_name      | durable_writes | replication
+--------------------+----------------+-------------------------------------------------------------------------------------
+        system_auth |           True | {'class': 'org.apache.cassandra.locator.SimpleStrategy', 'replication_factor': '1'}
+      system_schema |           True |                             {'class': 'org.apache.cassandra.locator.LocalStrategy'}
+ system_distributed |           True | {'class': 'org.apache.cassandra.locator.SimpleStrategy', 'replication_factor': '3'}
+             system |           True |                             {'class': 'org.apache.cassandra.locator.LocalStrategy'}
+      system_traces |           True | {'class': 'org.apache.cassandra.locator.SimpleStrategy', 'replication_factor': '2'}
+               demo |           True | {'class': 'org.apache.cassandra.locator.SimpleStrategy', 'replication_factor': '1'}
+           employee |           True | {'class': 'org.apache.cassandra.locator.SimpleStrategy', 'replication_factor': '1'}
+
+(7 rows)
+cqlsh> use employee;
+
+cqlsh:employee> create table emp_info( empid int PRIMARY KEY, empname text, designation text, DOJ timestamp, salary double, deptname text );
+
+cqlsh:employee> describe tables;
+
+emp_info
+
+cqlsh:employee> describe table emp_info;
+
+CREATE TABLE employee.emp_info (
+    empid int PRIMARY KEY,
+    deptname text,
+    designation text,
+    doj timestamp,
+    empname text,
+    salary double
+) WITH additional_write_policy = '99p'
+    AND bloom_filter_fp_chance = 0.01
+    AND caching = {'keys': 'ALL', 'rows_per_partition': 'NONE'}
+    AND cdc = false
+    AND comment = ''
+    AND compaction = {'class': 'org.apache.cassandra.db.compaction.SizeTieredCompactionStrategy', 'max_threshold': '32', 'min_threshold': '4'}
+    AND compression = {'chunk_length_in_kb': '16', 'class': 'org.apache.cassandra.io.compress.LZ4Compressor'}
+    AND crc_check_chance = 1.0
+    AND default_time_to_live = 0
+    AND extensions = {}
+    AND gc_grace_seconds = 864000
+    AND max_index_interval = 2048
+    AND memtable_flush_period_in_ms = 0
+    AND min_index_interval = 128
+    AND read_repair = 'BLOCKING'
+    AND speculative_retry = '99p';
+
+cqlsh:employee> BEGIN BATCH INSERT INTO emp_info(empid, empname, designation, DOJ, salary, deptname) values(1, 'Chandan', 'Manager', '2020-02-21', 50000, 'Webdev') APPLY BATCH;
+cqlsh:employee> BEGIN BATCH INSERT INTO emp_info(empid, empname, designation, DOJ, salary, deptname) values(2, 'Ramesh', 'Clerk', '2015-12-21', 10000, 'Dataceneter') APPLY BATCH;
+cqlsh:employee> BEGIN BATCH INSERT INTO emp_info(empid, empname, designation, DOJ, salary, deptname) values(3, 'Suresh', 'COO', '2013-01-23', 100000, 'Marketing') APPLY BATCH;
+cqlsh:employee> select * from emp_info;
+
+ empid | deptname    | designation | doj                             | empname | salary
+-------+-------------+-------------+---------------------------------+---------+--------
+     1 |      Webdev |     Manager | 2020-02-21 00:00:00.000000+0000 | Chandan |  50000
+     2 | Dataceneter |       Clerk | 2015-12-21 00:00:00.000000+0000 |  Ramesh |  10000
+     3 |   Marketing |         COO | 2013-01-23 00:00:00.000000+0000 |  Suresh |  1e+05
+
+(3 rows)
+cqlsh:employee> create index on emp_info(empname);
+cqlsh:employee> create index on emp_info(deptname);
+cqlsh:employee> update emp_info set empname = 'Nandan', deptname = 'Devops' where empid=1;
+cqlsh:employee> select * from emp_info;
+
+ empid | deptname    | designation | doj                             | empname | salary
+-------+-------------+-------------+---------------------------------+---------+--------
+     1 |      Devops |     Manager | 2020-02-21 00:00:00.000000+0000 |  Nandan |  50000
+     2 | Dataceneter |       Clerk | 2015-12-21 00:00:00.000000+0000 |  Ramesh |  10000
+     3 |   Marketing |         COO | 2013-01-23 00:00:00.000000+0000 |  Suresh |  1e+05
+
+(3 rows)
+cqlsh:employee> alter table emp_info ADD projects set<text>;
+cqlsh:employee> select * from emp_info;
+
+ empid | deptname    | designation | doj                             | empname | projects | salary
+-------+-------------+-------------+---------------------------------+---------+----------+--------
+     1 |      Devops |     Manager | 2020-02-21 00:00:00.000000+0000 |  Nandan |     null |  50000
+     2 | Dataceneter |       Clerk | 2015-12-21 00:00:00.000000+0000 |  Ramesh |     null |  10000
+     3 |   Marketing |         COO | 2013-01-23 00:00:00.000000+0000 |  Suresh |     null |  1e+05
+
+(3 rows)
+
+cqlsh:employee> update emp_info set projects = {'Data Science'} where empid=1;
+cqlsh:employee> update emp_info set projects = {'Cryptocurrency'} where empid=2;
+cqlsh:employee> select * from emp_info;
+
+ empid | deptname    | designation | doj                             | empname | projects           | salary
+-------+-------------+-------------+---------------------------------+---------+--------------------+--------
+     1 |      Devops |     Manager | 2020-02-21 00:00:00.000000+0000 |  Nandan |   {'Data Science'} |  50000
+     2 | Dataceneter |       Clerk | 2015-12-21 00:00:00.000000+0000 |  Ramesh | {'Cryptocurrency'} |  10000
+     3 |   Marketing |         COO | 2013-01-23 00:00:00.000000+0000 |  Suresh |               null |  1e+05
+
+(3 rows)
+cqlsh:employee> update emp_info set projects = {'Mobile app'} where empid=3;
+cqlsh:employee> select * from emp_info;
+
+ empid | deptname    | designation | doj                             | empname | projects           | salary
+-------+-------------+-------------+---------------------------------+---------+--------------------+--------
+     1 |      Devops |     Manager | 2020-02-21 00:00:00.000000+0000 |  Nandan |   {'Data Science'} |  50000
+     2 | Dataceneter |       Clerk | 2015-12-21 00:00:00.000000+0000 |  Ramesh | {'Cryptocurrency'} |  10000
+     3 |   Marketing |         COO | 2013-01-23 00:00:00.000000+0000 |  Suresh |     {'Mobile app'} |  1e+05
+
+(3 rows)
+cqlsh:employee> select ttl(deptname) from emp_info where emp_id=123;
+
+ ttl(deptname)
+----------------
+
+(0 rows)
+cqlsh:employee> INSERT INTO emp_info(empid, empname, designation, DOJ, salary, deptname) values(4, 'Rakesh', 'Cleaner', '2020-06-01', 5000, 'Staff')
+cqlsh:employee> select ttl(deptname) from emp_info where empid=4;
+
+ ttl(deptname)
+----------------
+              1
+
+(1 rows)
