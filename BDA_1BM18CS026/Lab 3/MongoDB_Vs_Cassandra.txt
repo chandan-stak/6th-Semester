@@ -1,0 +1,17 @@
+MongoDB uses queries structured into JSON fragments and does not have any query language support yet.
+Cassandra has CQL which is similar to SQL with some limitations.
+
+MongoDB’s data model is categorized as object and document-oriented
+Cassandra has a table structure using rows and columns.
+
+Displaying the records in Mangodb and Cassandra
+'db.employee.find()’  ==== ‘SELECT * FROM employee;’
+
+MongoDB has a built-in aggregation framework.
+Cassandra has no aggregation framework and requires external tools like Hadoop, Spark and others.
+
+MongoDB is a database that does not require a schema, naturally making it more adaptable to changes.
+Cassandra is a much more stationary database.
+
+
+
